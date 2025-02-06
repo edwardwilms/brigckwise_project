@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { 
-  Upload, 
   DollarSign, 
   Clock, 
   PieChart,
@@ -24,7 +23,7 @@ import {
 
 const inputFields = [
   { key: 'operacao_total', label: 'OPERAÇÃO TOTAL', tooltip: 'Valor total financiado', cell: 'C7' },
-  { key: 'financiamento', label: 'OPERAÇÃO TOTAL', tooltip: 'Valor do financiamento do projeto', cell: 'D8' },
+  { key: 'financiamento', label: 'FINANCIAMENTO', tooltip: 'Valor do financiamento do projeto', cell: 'D8' },
   { key: 'metragem_terreno', label: 'METRAGEM TERRENO', tooltip: 'Área total do terreno em m²', cell: 'C13' },
   { key: 'metragem_total_venda', label: 'METRAGEM TOTAL - VENDA', tooltip: 'Área total disponível para venda', cell: 'C14' },
   { key: 'metragem_equivalente_construcao', label: 'METRAGEM EQUIVALENTE DE CONSTRUÇÃO', tooltip: 'Área equivalente de construção', cell: 'C15' },
@@ -38,11 +37,29 @@ const inputFields = [
 ];
 
 const outputFields = [
+  {
+    key: 'lucro_liquido',
+    label: 'LUCRO LÍQUIDO',
+    icon: DollarSign,
+    color: 'text-green-500'
+  },
+  {
+    key: 'roi',
+    label: 'ROI',
+    icon: TrendingUp,
+    color: 'text-emerald-500'
+  },
+  {
+    key: 'tir_mensal',
+    label: 'TIR MENSAL',
+    icon: Percent,
+    color: 'text-cyan-500'
+  },
   { 
     key: 'exposicao_caixa',
     label: 'EXPOSIÇÃO DE CAIXA',
     icon: DollarSign,
-    color: 'text-blue-500'
+    color: 'text-red-500'
   },
   {
     key: 'meses_payback',
@@ -51,8 +68,8 @@ const outputFields = [
     color: 'text-green-500'
   },
   {
-    key: 'corretagem',
-    label: 'CORRETAGEM',
+    key: 'corretagem_venda',
+    label: 'CORRETAGEM VENDA',
     icon: Building,
     color: 'text-purple-500'
   },
@@ -66,7 +83,7 @@ const outputFields = [
     key: 'lucro_bruto',
     label: 'LUCRO BRUTO',
     icon: BarChart,
-    color: 'text-red-500'
+    color: 'text-green-500'
   },
   {
     key: 'ir_ganho_capital',
@@ -74,24 +91,6 @@ const outputFields = [
     icon: Calculator,
     color: 'text-orange-500'
   },
-  {
-    key: 'lucro_liquido',
-    label: 'LUCRO LÍQUIDO',
-    icon: PieChart,
-    color: 'text-indigo-500'
-  },
-  {
-    key: 'roi',
-    label: 'ROI',
-    icon: TrendingUp,
-    color: 'text-emerald-500'
-  },
-  {
-    key: 'tir_mensal',
-    label: 'TIR MENSAL',
-    icon: Percent,
-    color: 'text-cyan-500'
-  }
 ];
 
 const Dashboard = () => {
@@ -104,22 +103,29 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleFileUpload = async (event) => {
-    const file = event.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
+  useEffect(() => {
+    const fetchExcelData = async () => {
+      setLoading(true);
+      setError('');
 
-    try {
-      const response = await fetch('http://localhost:8000/upload-excel', {
-        method: 'POST',
-        body: formData
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+      try {
+        const response = await fetch('http://localhost:8000/read-excel', {
+          method: 'GET'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail);
+        setInputs(data.inputData);
+        setOutputs(data.outputData);
+      } catch (err) {
+        console.error("Error fetching Excel data:", err);
+        setError(typeof err === 'object' ? JSON.stringify(err) : err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExcelData();
+  }, []);
 
   const handleInputChange = (key, value) => {
     console.log("Starting calculation...");
@@ -159,27 +165,15 @@ const Dashboard = () => {
       console.log("Response from update-excel:", data);
       if (!response.ok) throw new Error(data.detail);
 
-      // 2. Read input values from Excel
+      // 3. Read input values from Excel
       const readExcelResponse = await fetch('http://localhost:8000/read-excel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: 'BUSINESS PLAN - BWI.xlsx' })
+        method: 'GET'
       });
       const readExcelData = await readExcelResponse.json();
       console.log("Response from read-excel:", readExcelData);
       if (!readExcelResponse.ok) throw new Error(readExcelData.detail);
-      setInputs(readExcelData.inputData);
-
-      // 3. Calculate output values
-      console.log("Inputs before calculation:", inputs);
-      const outputResponse = await fetch('http://localhost:8000/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(inputs)
-      });
-      const outputData = await outputResponse.json();
-      if (!outputResponse.ok) throw new Error(outputData.detail);
-      setOutputs(outputData.data);
+      // setInputs(readExcelData.inputData);
+      setOutputs(readExcelData.outputData);
     } catch (err) {
       console.error("Error during calculation:", err);
       setError(typeof err === 'object' ? JSON.stringify(err) : err.message);
@@ -194,60 +188,53 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex justify-between items-center">
             <h1 className="text-4xl font-bold text-gray-900">Investment Dashboard</h1>
-            <div className="flex items-center gap-4">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                id="excel-upload"
-                onChange={handleFileUpload}
-              />
-              <label htmlFor="excel-upload">
-                <Button variant="outline" className="cursor-pointer">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Excel
-                </Button>
-              </label>
-            </div>
+            <Button onClick={handleCalculate}>
+              {loading ? 'Calculating...' : 'Calculate'}
+            </Button>
           </div>
 
           <Card>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-              {inputFields.map(({ key, label, tooltip, type }) => (
-                <Tooltip key={key}>
-                  <TooltipTrigger asChild>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        {label}
-                      </label>
-                      <Input
-                        type="number"
-                        value={inputs[key]}
-                        onChange={(e) => handleInputChange(key, e.target.value)}
-                        min={0}
-                        max={type === 'percentage' ? 100 : undefined}
-                        step={type === 'percentage' ? 0.01 : 0.01}
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{tooltip}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-              <Button 
-                onClick={handleCalculate}
-                disabled={loading}
-                className="col-span-2 mt-4"
-              >
-                {loading ? 'Calculating...' : 'Calculate'}
-              </Button>
-            </CardContent>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+            {inputFields.map(({ key, label, tooltip, type }) => (
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {label}
+                    </label>
+                    <Input
+                      type="text" // Change to text to allow formatted display
+                      value={
+                        inputs[key] != null
+                          ? parseFloat(inputs[key]).toLocaleString('pt-BR', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : ''
+                      }
+                      onChange={(e) => {
+                        // Remove formatting for the value stored in the state
+                        const rawValue = e.target.value.replace(/\./g, '').replace(',', '.');
+                        handleInputChange(key, rawValue);
+                      }}
+                      min={0}
+                      max={type === 'percentage' ? 100 : undefined}
+                      step={type === 'percentage' ? 0.01 : 0.01}
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </CardContent>
+
           </Card>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {outputFields.map(({ key, label, icon: Icon, color }) => (
-              <Card key={key} className="bg-white hover:shadow-lg transition-shadow">
+              <Card key={key} className={`bg-white shadow-md ${key === 'lucro_liquido' || key === 'roi' || key === 'tir_mensal' ? 'transform transition-all hover:scale-105 shadow-2xl' : ''}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg bg-gray-50 ${color}`}>
@@ -256,11 +243,19 @@ const Dashboard = () => {
                     <div>
                       <p className="text-sm text-gray-500">{label}</p>
                       <p className="text-xl font-bold mt-1">
-                        {outputs[key]?.toLocaleString('pt-BR', {
-                          style: key.includes('percentage') ? 'percent' : 'decimal',
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        }) || '0,00'}
+                        {key === 'lucro_liquido' ? 
+                          outputs[key]?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) :
+                          key === 'roi' || key === 'tir_mensal' ?
+                          `${outputs[key].toFixed(2)}%` :
+                          key === 'exposicao_caixa' || key === 'taxa_sucesso' || key === 'corretagem_venda' || key === 'lucro_bruto' || key === 'ir_ganho_capital' ?
+                          outputs[key]?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) :
+                          key === 'meses_payback' ?
+                          Math.round(outputs[key]) :
+                          outputs[key]?.toLocaleString('pt-BR', {
+                            style: key.includes('percentage') ? 'percent' : 'decimal',
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          }) || '0,00'}
                       </p>
                     </div>
                   </div>
@@ -268,6 +263,7 @@ const Dashboard = () => {
               </Card>
             ))}
           </div>
+
 
           {error && (
             <Alert variant="destructive">
