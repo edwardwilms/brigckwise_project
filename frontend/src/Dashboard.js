@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { API_BASE_URL } from '../lib/api';
 import {
   Tooltip,
   TooltipContent,
@@ -22,18 +23,18 @@ import {
 } from 'lucide-react';
 
 const inputFields = [
-  { key: 'operacao_total', label: 'OPERAÇÃO TOTAL', tooltip: 'Valor total financiado', cell: 'C7' },
-  { key: 'financiamento', label: 'FINANCIAMENTO', tooltip: 'Valor do financiamento do projeto', cell: 'D8' },
-  { key: 'metragem_terreno', label: 'METRAGEM TERRENO', tooltip: 'Área total do terreno em m²', cell: 'C13' },
+  { key: 'operacao_total', label: 'VALOR OPERAÇÃO', tooltip: 'Valor total financiado', cell: 'C7' },
+  { key: 'financiamento', label: 'MÊS DO FINANCIAMENTO', tooltip: 'Valor do financiamento do projeto', cell: 'D8' },
+  { key: 'metragem_terreno', label: 'METRAGEM DO TERRENO', tooltip: 'Área total do terreno em m²', cell: 'C13' },
   { key: 'metragem_total_venda', label: 'METRAGEM TOTAL - VENDA', tooltip: 'Área total disponível para venda', cell: 'C14' },
   { key: 'metragem_equivalente_construcao', label: 'METRAGEM EQUIVALENTE DE CONSTRUÇÃO', tooltip: 'Área equivalente de construção', cell: 'C15' },
   { key: 'custo_m2_construcao', label: 'CUSTO/M² CONSTRUÇÃO', tooltip: 'Custo por metro quadrado de construção', cell: 'C16' },
   { key: 'preco_m2_venda', label: 'PREÇO/M² ESPERADO DE VENDA', tooltip: 'Preço esperado por metro quadrado para venda', cell: 'C17' },
   { key: 'preco_terreno', label: 'PREÇO TERRENO', tooltip: 'Valor total do terreno', cell: 'C19' },
-  { key: 'custo_construcao', label: 'CUSTO CONSTRUÇÃO', tooltip: 'Custo total da construção', cell: 'D21' },
-  { key: 'custo_construcao_prazo', label: 'CUSTO CONSTRUÇÃO PRAZO', tooltip: 'Prazo da construção', cell: 'E21' },
+  { key: 'custo_construcao', label: 'MÊS DE CONSTRUÇÃO', tooltip: 'Custo total da construção', cell: 'D21' },
+  { key: 'custo_construcao_prazo', label: 'PRAZO DE CONSTRUÇÃO', tooltip: 'Prazo da construção', cell: 'E21' },
   { key: 'taxa_performance', label: 'TAXA DE PERFORMANCE (%)', tooltip: 'Taxa de performance do projeto', type: 'percentage', cell: 'D24' },
-  { key: 'corretagem', label: 'CORRETAGEM (%)', tooltip: 'Taxa de corretagem', type: 'percentage', cell: 'C27' }
+  { key: 'corretagem', label: 'TAXA DE CORRETAGEM (%)', tooltip: 'Taxa de corretagem', type: 'percentage', cell: 'C27' }
 ];
 
 const outputFields = [
@@ -109,7 +110,7 @@ const Dashboard = () => {
       setError('');
 
       try {
-        const response = await fetch('http://localhost:8000/read-excel', {
+        const response = await fetch(`${API_BASE_URL}/read-excel`, {
           method: 'GET'
         });
         const data = await response.json();
@@ -156,7 +157,7 @@ const Dashboard = () => {
       console.log("Input values for update-excel:", inputValues);
 
       // 2. Update Excel file
-      const response = await fetch('http://localhost:8000/update-excel', {
+      const response = await fetch(`${API_BASE_URL}/update-excel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(inputValues)
@@ -166,7 +167,7 @@ const Dashboard = () => {
       if (!response.ok) throw new Error(data.detail);
 
       // 3. Read input values from Excel
-      const readExcelResponse = await fetch('http://localhost:8000/read-excel', {
+      const readExcelResponse = await fetch(`${API_BASE_URL}/read-excel`, {
         method: 'GET'
       });
       const readExcelData = await readExcelResponse.json();
@@ -195,39 +196,61 @@ const Dashboard = () => {
 
           <Card>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-            {inputFields.map(({ key, label, tooltip, type }) => (
-              <Tooltip key={key}>
-                <TooltipTrigger asChild>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      {label}
-                    </label>
-                    <Input
-                      type="text" // Change to text to allow formatted display
-                      value={
-                        inputs[key] != null
-                          ? parseFloat(inputs[key]).toLocaleString('pt-BR', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })
-                          : ''
-                      }
-                      onChange={(e) => {
-                        // Remove formatting for the value stored in the state
-                        const rawValue = e.target.value.replace(/\./g, '').replace(',', '.');
-                        handleInputChange(key, rawValue);
-                      }}
-                      min={0}
-                      max={type === 'percentage' ? 100 : undefined}
-                      step={type === 'percentage' ? 0.01 : 0.01}
-                    />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{tooltip}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
+            {inputFields.map(({ key, label, tooltip, type }) => {
+              const inputRef = useRef(null);
+
+              const handleInputChange = (key, rawValue) => {
+                // Update state with raw value (without formatting)
+                // Preserving cursor position:
+                const cursorPosition = inputRef.current.selectionStart;
+
+                // Do state update (rawValue) here...
+                setInputs((prevInputs) => ({
+                  ...prevInputs,
+                  [key]: rawValue,
+                }));
+
+                // After state update, restore the cursor position
+                setTimeout(() => {
+                  inputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+                }, 0);
+              };
+
+              return (
+                <Tooltip key={key}>
+                  <TooltipTrigger asChild>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        {label}
+                      </label>
+                      <Input
+                        ref={inputRef}
+                        type="text"
+                        value={
+                          inputs[key] != null
+                            ? parseFloat(inputs[key]).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })
+                            : ''
+                        }
+                        onChange={(e) => {
+                          // Store the raw value in the state, without formatting
+                          const rawValue = e.target.value.replace(/\./g, '').replace(',', '.');
+                          handleInputChange(key, rawValue);
+                        }}
+                        min={0}
+                        max={type === 'percentage' ? 100 : undefined}
+                        step={type === 'percentage' ? 0.01 : 0.01}
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{tooltip}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
           </CardContent>
 
           </Card>
