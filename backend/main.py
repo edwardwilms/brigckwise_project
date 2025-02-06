@@ -6,6 +6,7 @@ from typing import Dict
 import pandas as pd
 import openpyxl
 import xlwings as xw
+import os
 
 app = FastAPI()
 
@@ -40,11 +41,14 @@ class InputData(BaseModel):
         if not Decimal('0') <= self.corretagem <= Decimal('1'):
             raise ValueError("corretagem must be between 0 and 100")
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+excel_path = os.path.join(current_dir, 'BUSINESS PLAN - BWI.xlsx')
+
 @app.post("/update-excel")
 async def update_excel(input_data: InputData):
     try:
         # Open the Excel file
-        workbook = openpyxl.load_workbook('BUSINESS PLAN - BWI.xlsx')
+        workbook = openpyxl.load_workbook(excel_path)
         worksheet = workbook['INPUTS']
 
         # Update the input values in the Excel file
@@ -62,7 +66,7 @@ async def update_excel(input_data: InputData):
         worksheet['C27'] = float(input_data.corretagem)
 
         # Save the modified Excel file
-        workbook.save('BUSINESS PLAN - BWI.xlsx')
+        workbook.save(excel_path)
 
         return {"status": "success", "message": "Excel file updated successfully"}
     except Exception as e:
@@ -72,12 +76,12 @@ async def update_excel(input_data: InputData):
 async def read_excel():
     try:
         # Open the Excel file
-        workbook = openpyxl.load_workbook('BUSINESS PLAN - BWI.xlsx', data_only=True)
+        workbook = openpyxl.load_workbook(excel_path, data_only=True)
         input_worksheet = workbook['INPUTS']
         
         # Using xlwings to read the output values from the Excel file
         app = xw.App(visible=False)
-        wb = xw.Book('BUSINESS PLAN - BWI.xlsx')
+        wb = xw.Book(excel_path)
         sheet = wb.sheets['FLUXO AUTOMATICO']
         
         # Read values from cells with formulas
