@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Next.js
+.next/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editor files
+.vscode/
+*.swp
+*.swo
+
+# Misc
+.DS_Store
+*.log
+*.env
