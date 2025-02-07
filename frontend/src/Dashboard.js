@@ -188,14 +188,14 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-4xl font-bold text-gray-900">Investment Dashboard</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Brickwise Invest Dashboard</h1>
             <Button onClick={handleCalculate}>
               {loading ? 'Calculating...' : 'Calculate'}
             </Button>
           </div>
 
           <Card>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+          <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6">
             {inputFields.map(({ key, label, tooltip, type }) => {
               const inputRef = useRef(null);
 
