@@ -5,7 +5,7 @@ from decimal import Decimal
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import re
-import locale
+import logging
 import os
 import json
 
@@ -145,28 +145,20 @@ async def read_excel():
                     return 0  # Handle cases where conversion fails
             return 0  # Return 0 for empty or None values
         
+        logging.basicConfig(level=logging.INFO)
+        
         def convert_currency_number(value_str):
             if value_str:
-                # Remove currency symbols (R$, $, etc.) and spaces
-                value_str = re.sub(r'[R$\s]', '', value_str).strip()  # Remove currency symbols and spaces
+                value_str = re.sub(r'[R$\s]', '', value_str).strip()
 
-                # Attempt locale-aware conversion
+                # Try converting directly, handling both . and , as decimal separators
                 try:
-                    locale.setlocale(locale.LC_ALL, '')  # Use system's locale
-                    value = locale.atof(value_str)
+                    value = float(value_str.replace('.', '').replace(',', '.'))  # Handles both formats
                     return value
-                except (ValueError, AttributeError): # Handle cases where locale fails
-                    try: # Attempt to use US locale
-                        locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-                        value = locale.atof(value_str)
-                        return value
-                    except (ValueError, AttributeError): # If even US fails, try converting after replacing comma with dot
-                        value_str = value_str.replace(',', '.')
-                        try:
-                            value = float(value_str)
-                            return value
-                        except ValueError:
-                            return 0
+                except ValueError as e:
+                    logging.error(f"Conversion error '{value_str}': {e}")
+                    return 0
+
             return 0
         
         operacao_total = convert_currency_number(input_values.get('C7'))
