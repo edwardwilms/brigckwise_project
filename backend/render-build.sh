@@ -4,11 +4,11 @@
 apt-get update
 apt-get install -y locales
 
-# Generate the locales you need (e.g., en_US.UTF-8, pt_BR.UTF-8)
-locale-gen pt_BR.UTF-8  # Add other locales as needed
+# Generate the *supported* locale (en_US.UTF-8)
+locale-gen en_US.UTF-8
 
-# Set the default locale (important)
-export LC_ALL="pt_BR.UTF-8" # Or your default locale
+# Set LC_ALL to the *supported* locale
+export LC_ALL="en_US.UTF-8"
 
 # Activate the virtual environment
 source .venv/bin/activate
@@ -21,5 +21,5 @@ cd ../frontend
 npm install
 npm run build
 
-# Go back to backend directory (optional but good practice)
+# Go back to backend directory (optional)
 cd backend
