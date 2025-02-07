@@ -15,6 +15,3 @@ pip install -r requirements.txt
 cd ../frontend
 npm install
 npm run build
-
-# Go back to backend directory (optional but good practice)
-cd ../backend
