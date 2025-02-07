@@ -3,11 +3,7 @@ google-api-core==2.24.1 # Or your version
 google-api-python-client==2.160.0 # Or your version
 google-auth==2.38.0 # Or your version
 google-auth-httplib2==0.2.0 # Or your version
-googleapis-common-protos==1.67.0rc1 # Or your version
-httplib2==0.22.0 # Or your version
 pydantic==2.10.6 # Or your version
 pydantic_core==2.27.2 # Or your version
-locale  # No version needed
-decimal  # No version needed
 urllib3==2.3.0 # Or your version
 uvicorn==0.34.0 # Or your version
