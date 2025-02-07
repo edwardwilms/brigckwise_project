@@ -7,3 +7,4 @@ pydantic==2.10.6 # Or your version
 pydantic_core==2.27.2 # Or your version
 urllib3==2.3.0 # Or your version
 uvicorn==0.34.0 # Or your version
+locales

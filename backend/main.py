@@ -56,8 +56,6 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 # Uncomment line bellow for when using local development
 '''credentials = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-credentials = service_account.Credentials.from_service_account_file(
-    os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"), scopes=SCOPES
 )'''
 # Get the JSON string from the environment variable
 credentials_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
