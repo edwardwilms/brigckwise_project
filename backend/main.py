@@ -7,6 +7,7 @@ from googleapiclient.discovery import build
 import re
 import locale
 import os
+import json
 
 app = FastAPI()
 
@@ -54,9 +55,19 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # Uncomment line bellow for when using local development
 '''credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES)'''
+    SERVICE_ACCOUNT_FILE, scopes=SCOPES)
 credentials = service_account.Credentials.from_service_account_file(
     os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"), scopes=SCOPES
+)'''
+# Get the JSON string from the environment variable
+credentials_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+
+# Parse the JSON string into a dictionary
+credentials_dict = json.loads(credentials_json)
+
+# Create credentials from the dictionary
+credentials = service_account.Credentials.from_service_account_info(
+    info=credentials_dict, scopes=SCOPES
 )
 
 service = build('sheets', 'v4', credentials=credentials)
